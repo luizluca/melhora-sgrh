@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name       Melhora SGRH Online TRESC
 // @namespace  http://luizluca.blogspot.com/
-// @version    0.7
+// @version    0.8
 // @description Adiciona mais informações ao SGRH
 // @grant       none
-// @updateURL https://drive.google.com/uc?export=download&id=0B54xzz44RpW6RjAycjJYeWpQUTg
-// @downloadURL https://drive.google.com/uc?export=download&id=0B54xzz44RpW6RjAycjJYeWpQUTg
+// @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.js
+// @downloadURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.js
 // @match      http://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/espelhoPontoMensal.do*
 // @copyright  2016+, Luiz Angelo Daros de Luca <luizluca@tre-sc.jus.br>, Luís Flávio Seelig <luisfs@tre-sc.jus.br>
 // @require    http://code.jquery.com/jquery-latest.js
