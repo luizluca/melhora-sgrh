@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora SGRH Online TRESC
 // @namespace  http://luizluca.blogspot.com/
-// @version    0.8
+// @version    0.9
 // @description Adiciona mais informações ao SGRH
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.js
@@ -18,7 +18,7 @@ function pad (str, max) {
 function time2str(aTime) {
     return (aTime<0?"-":"") + pad(Math.floor(Math.abs(aTime/60)),2) + ":" + pad(Math.abs(aTime%60),2);
 }
-    
+
 function str2time(aTimeStr) {
     horas=parseInt(aTimeStr.substr(0,aTimeStr.indexOf(":")));
     minutos=parseInt(aTimeStr.substr(aTimeStr.indexOf(":")+1));
@@ -26,6 +26,7 @@ function str2time(aTimeStr) {
     return horas*60+minutos;
 }
 
+/*jshint multistr: true */
 function melhoraMesAtual() {
     extraInfo='<tr class="saldoSemCompensacao" style="display: none;">\
                   <th colspan="9" id="headerTotais" >Totais sem HE:</th>\
@@ -68,7 +69,7 @@ function melhoraMesAtual() {
 				  <th colspan="2" class="cellTotais">&nbsp;</th>\
                </tr>';
     $("#trBotaoImprimir").before(extraInfo);
-    $("#tblEspelhoPonto").after('<div id="mensagem" title="???" style="display:none"><p>???</p></div>');        
+    $("#tblEspelhoPonto").after('<div id="mensagem" title="???" style="display:none"><p>???</p></div>');
     
     horasTotalEl=$(".cell10");
     horaExtraEl=$(".cell11");
@@ -76,10 +77,10 @@ function melhoraMesAtual() {
     atrasos=0;
     hENaoHomologado=0;
     
-    horasTotalEl.each(function( index, element ) {   
+    horasTotalEl.each(function( index, element ) {
         //atrasos += value;
     });
-    horaExtraEl.each(function( index, element ) { 
+    horaExtraEl.each(function( index, element ) {
         extraStr = $(this).text();
         extra = str2time(extraStr);
         if (extra<0) {
@@ -87,9 +88,9 @@ function melhoraMesAtual() {
         }
         if (extra>0) {
             	comAutorizacao=0;
-              	$(this).siblings().filter(".cell13").find("img").each(function( index, element ) {                    
+              	$(this).siblings().filter(".cell13").find("img").each(function( index, element ) {
                     if ($(this).attr('title').match("autorização")) {
-                    	comAutorizacao=1;                        
+                    	comAutorizacao=1;
                     }
                 });
             	if (!comAutorizacao) {
@@ -101,22 +102,22 @@ function melhoraMesAtual() {
     $(".saldoSemCompensacao").show();
     
     saldoAVencerUtilizado=0;
-    matricula = $("#cellMatricula").text()
+    matricula = $("#cellMatricula").text();
     // nova fonte
     /*
     $.ajax({
         url: "http://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/extratoBancoHoras.do",
-        data: { 
+        data: {
             acao: "lancamentoMensal",
             mesAnoSelecionado: "10/2015",
             "unidadeSelecionada.codigo": 0, //segurança disso?!
-            "servidorSelecionado.matricula": matricula // Isto nao eh validado... pode ser qualquer pessoa >:) 
+            "servidorSelecionado.matricula": matricula // Isto nao eh validado... pode ser qualquer pessoa >:)
         },
         type: "POST",
         success: function ( code )
         {
             html = $(code);
-            console.log(code);            
+            console.log(code);
             alert(html.$("#tituloTblCreditosUtilizados"));
         },
         error: function ( code )
@@ -132,46 +133,49 @@ function melhoraMesAtual() {
             html = $(code);
             saldoAVencer=null;
             
-            html.find("#tblSaldosAtuais").find("tr").each (function( index, element ) {                
-                validadeStr = $(this).find(".cellValidade").first().text()
-                if (!validadeStr) return
-                validadeNum = Date.parse(validadeStr)
-                if (validadeNum == mesNum) {    
+            html.find("#tblSaldosAtuais").find("tr").each (function( index, element ) {
+                validadeStr = $(this).find(".cellValidade").first().text();
+                if (!validadeStr) return;
+                alert(validadeStr);
+                validadeNum = Date.parse(validadeStr);
+                alert(validadeNum);
+                alert(mesNum);
+                if (validadeNum == mesNum) {
                     saldoAVencerStr = $(this).find(".cellQtdHoras").first().text();
                     saldoAVencer = str2time(saldoAVencerStr);
                     $("#thSaldo").text(time2str(saldoAVencer));
                 }
-            });  
+            });
 
             if (saldoAVencer==null) {
-            	alert('Saldo a vencer para o mês ' +mes+ ' não encontrado!');                                
+            	alert('Saldo a vencer para o mês ' +mes+ ' não encontrado!');
                 $("#mensagem").text(code);
                 return 0;
             }
             
             
-            if (saldoAVencer<0) {               
-            	//$('#thExtraFinal').text(time2str(hENaoAutorizado + saldoAVencer));            
+            if (saldoAVencer<0) {
+            	//$('#thExtraFinal').text(time2str(hENaoAutorizado + saldoAVencer));
                 $("#thExtra").text(time2str(Math.abs(hENaoHomologado)));
-                $(".saldoNegativo").show();	
+                $(".saldoNegativo").show();
                 pendente=-saldoAVencer-hENaoHomologado;
                 saldoAVencerUtilizado=Math.max(saldoAVencer, -hENaoHomologado);
             } else {
                 //$('#thExtraFinal').text(time2str(Math.min(saldoAVencer - atrasos,0)));
                 $("#thExtra").text(time2str(Math.abs(atrasos)));
-                $(".saldoPositivo").show();		
+                $(".saldoPositivo").show();
                 pendente=saldoAVencer+atrasos;
                 saldoAVencerUtilizado=Math.min(saldoAVencer, -atrasos);
             }
             $(".saldoDesconhecido").hide();
             somar_saldo_mes();
             
-            $("#thPendente").text(time2str(pendente)); 
+            $("#thPendente").text(time2str(pendente));
             if (pendente>0) {
                 $("#trPendente").show();
             } else {
                 $("#trResolvido").show();
-            }            
+            }
         },
         error: function ( code )
         {
@@ -196,13 +200,13 @@ function melhoraMesAtual() {
     
     /* Timer do horário atual */
     function estimar_ponto_hoje() {
-        datas=$(".cell01");    		
-        datas.each(function( index, element ) { 
+        datas=$(".cell01");
+        datas.each(function( index, element ) {
             dataStr = $(this).text();
-            now=new Date();            
-            periodoEstimado=0;           
-            hojeStr=pad(now.getDate(),2) + "/" + pad(now.getMonth()+1,2) + "/" +  + now.getFullYear();
-            horaStr=pad(now.getHours(),2) + ":" + pad(now.getMinutes(),2);        
+            now=new Date();
+            periodoEstimado=0;
+            hojeStr=pad(now.getDate(),2) + "/" + pad(now.getMonth()+1,2) + "/" + now.getFullYear();
+            horaStr=pad(now.getHours(),2) + ":" + pad(now.getMinutes(),2);
             if (dataStr==hojeStr) {
 
                 /* TODO: Expediente pode ser variavel. Hoje fixo a 7 horas
@@ -212,41 +216,40 @@ function melhoraMesAtual() {
                 /* Sem expediente? (feriado, final de semana) */
                 if ($(this).parent().hasClass("fundo2")) {
                 	expediente=0;
-                // 7 horas
                 } else {
-                    expediente=60*6;
+                    expediente=60*7;
                 }
                 /*
                  $(this).siblings().each(function( index2, element2 ) {
                         if ($(this).hasClass("cell10")) {
                             total_sistema=str2time($(this).text());
-                        } 
+                        }
                         if ($(this).hasClass("cell11")) {
                             extra_sistema=str2time($(this).text());
-                        }                
+                        }
                 });
                 expediente = total_sistema-*/
                 
-                $(this).siblings().each(function( index2, element2 ) {                                   
-                    if (($(this).text()=="") || $(this).hasClass("estimated")) {
+                $(this).siblings().each(function( index2, element2 ) {
+                    if (($(this).text()==="") || $(this).hasClass("estimated")) {
                         $(this).text(horaStr);
                         $(this).css('color', 'red');
                         $(this).addClass("estimated");
                         return false;
                     }
                 });
-                entrando=true; total=0;             
-                $(this).siblings().each(function( index2, element2 ) {                
+                entrando=true; total=0;
+                $(this).siblings().each(function( index2, element2 ) {
                     if ($(this).text()!="") {
                         if (entrando) {
                             entrada=str2time($(this).text());
                         } else {
-                            total+=str2time($(this).text())-entrada;        
+                            total+=str2time($(this).text())-entrada;
                             if ($(this).hasClass("estimated")) {
                             	periodoEstimado+=str2time($(this).text())-entrada;
                             }
                         }
-                        entrando=!entrando;                                                                             
+                        entrando=!entrando;
                     } else {
                         return false;
                     }
@@ -257,29 +260,27 @@ function melhoraMesAtual() {
                             faltando=str2time($(this).text());
                             $(this).text(time2str(total));
                             $(this).css('color', 'red');
-                        } 
+                        }
                         if ($(this).hasClass("cell11")) {
-                            extra_dia=total-expediente
+                            extra_dia=total-expediente;
                             $(this).text(time2str(extra_dia));
-                            $(this).css('color', 'red');                                                
-                        }                
+                            $(this).css('color', 'red');
+                        }
                     });
                 }
                 comAutorizacao_dia=0;
-              	$(this).siblings().filter(".cell13").find("img").each(function( index, element ) {                    
+              	$(this).siblings().filter(".cell13").find("img").each(function( index, element ) {
                     if ($(this).attr('title').match("autorização")) {
-                    	comAutorizacao_dia=1;                        
+                    	comAutorizacao_dia=1;
                     }
                 });
-                
-            }      
+            }
         });
-        somar_saldo_mes();            
+        somar_saldo_mes();
     }
-        
-    setInterval(estimar_ponto_hoje, 1000);   
+    setInterval(estimar_ponto_hoje, 1000);
     
-    estimar_ponto_hoje();    
+    estimar_ponto_hoje();
 }
 
 function melhoraMesAnterior() {
@@ -322,13 +323,13 @@ function melhoraMesAnterior() {
 		';
     $("#trBotaoImprimir").before(extraInfo);
     
-	$(".alignRight").each(function( index, element ) {        
+	$(".alignRight").each(function( index, element ) {
         if ($(this).text().match("Ajustados:")) {
             atrasosEl=$(this).next().next();
             atrasosStr=atrasosEl.text();
             // Retira sinal dos atrasos (sempre negativo)
             atrasos=-str2time(atrasosStr);
-            $(this).text("Atrasos:");            
+            $(this).text("Atrasos:");
             atrasosEl.text(time2str(atrasos));
             $(this).next().next().next().text("soma dos excedentes negativos, consome saldo do mês anterior se positivo");
        	}
@@ -342,7 +343,7 @@ function melhoraMesAnterior() {
             hENaoAutorizado=str2time(hENaoAutorizadoStr);
             $(this).text("Hora-extra sem autorização:");
             $(this).next().next().text("soma dos excedentes positivos, compensa saldo do mês anterior se negativo");
-            $(this).next().next().attr('colspan',5);            
+            $(this).next().next().attr('colspan',5);
             $(this).after('<th colspan="1">&nbsp;</th>');
        	}
     });
@@ -353,42 +354,42 @@ function melhoraMesAnterior() {
         success: function ( code )
         {
             html = $(code);
-            html.find("td").filter(".cellMesAno").each(function( index, element ) {                
+            html.find("td").filter(".cellMesAno").each(function( index, element ) {
                 //HACK: Usando match pois o mes atual tem espaços
                 if ($(this).text().match(mesAnterior)) {
                     saldoAVencerStr = $(this).siblings().filter(".cellHorasRemanescentes").first().text();
                     saldoAVencer = str2time(saldoAVencerStr);
                     //saldoAVencer += 600;
-                    $("#thSaldo").text(time2str(saldoAVencer));                    
+                    $("#thSaldo").text(time2str(saldoAVencer));
                     return;
-                }                
+                }
                 if ($(this).text().match(mes)) {
                     saldoAtual=str2time($(this).siblings().filter(".cellHorasRemanescentes").text());
                     saldoExpirado=str2time($(this).siblings().filter(".cellHorasVencidas").text());
                     $("#thSaldoAtual").text(time2str(saldoAtual));
-                  	$("#thSaldoExpirado").text(time2str(saldoExpirado));                    
+                  	$("#thSaldoExpirado").text(time2str(saldoExpirado));
                     return;
                 }
-            });            
+            });
             
-            if (saldoAVencer<0) {          
+            if (saldoAVencer<0) {
                 extraFinal=hENaoAutorizado + saldoAVencer
-                saldoUsado=Math.max(-hENaoAutorizado, saldoAVencer); 
+                saldoUsado=Math.max(-hENaoAutorizado, saldoAVencer);
                  $(".saldoNegativo").show();
             } else {
                 extraFinal=Math.abs(Math.min(saldoAVencer - atrasos,0));
-                saldoUsado=Math.min(atrasos, saldoAVencer); 
-                $(".saldoPositivo").show();		
+                saldoUsado=Math.min(atrasos, saldoAVencer);
+                $(".saldoPositivo").show();
             }
             $('#thExtraFinal').text(time2str(extraFinal));
-            $("#thSaldoUsado").text(time2str(saldoUsado)); 
+            $("#thSaldoUsado").text(time2str(saldoUsado));
             $(".saldoDesconhecido").hide();
 			
             
             if ($("#thSaldoAtual").text()=="???") {
             	// Saldo de um mês não fechado!
                 if (saldoAVencer<0) {
-                    saldoAtual=extraFinal - atrasos;    
+                    saldoAtual=extraFinal - atrasos;
                     alert(time2str(hENaoAutorizado));
                     alert(time2str(saldoAVencer));
                     saldoExpirado=Math.min(hENaoAutorizado+saldoAVencer,0);
@@ -398,13 +399,13 @@ function melhoraMesAnterior() {
                 }
                 $("#thSaldoAtual").css('color', 'red');
                 $("#thSaldoExpirado").css('color', 'red');
-                $("#thSaldoAtual").text(time2str(saldoAtual));    
-                $("#thSaldoExpirado").text(time2str(saldoExpirado));                    
+                $("#thSaldoAtual").text(time2str(saldoAtual));
+                $("#thSaldoExpirado").text(time2str(saldoExpirado));
                 //máximo("Saldo mês anterior" - Atrasos, 0)
 
-                //$("#thSaldoAtual").text("!!!");    
-              	//$("#thSaldoExpirado").text("!!!");                                        
-            }                
+                //$("#thSaldoAtual").text("!!!");
+              	//$("#thSaldoExpirado").text("!!!");
+            }
         
         },
         error: function ( code )
@@ -416,7 +417,7 @@ function melhoraMesAnterior() {
 
 mes=$("input[name$='dataSelecionada']").val().substr(3);
 mesData=new Date(mes.substr(3,4),mes.substr(0,2)-1,1);
-if (mes=="") {	
+if (mes==="") {
     mesData=new Date();
     mesData.setDate(1);
     mes=pad(mesData.getMonth()+1,2)+"/"+pad(mesData.getFullYear(),4);
@@ -429,10 +430,10 @@ referencia = $("#conteudo").find("span").filter(".vermelho").text();
 if (referencia != "Mês Corrente") {
     //HACK: Mes sem acento?
     if ((referencia == "Mes Fechado") || (referencia == "Mes Não Fechado") || (referencia == "Mês Fechado") || (referencia == "Mês Não Fechado")) {
-        melhoraMesAnterior()        
+        melhoraMesAnterior();
     } else {
         alert("Tipo de página desconhecida!: "+ referencia);
     }
 } else {
-    melhoraMesAtual()
+    melhoraMesAtual();
 }
