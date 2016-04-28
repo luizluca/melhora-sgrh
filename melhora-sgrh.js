@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora SGRH Online TRESC
 // @namespace  http://luizluca.blogspot.com/
-// @version    0.9
+// @version    0.10
 // @description Adiciona mais informações ao SGRH
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.js
@@ -136,10 +136,7 @@ function melhoraMesAtual() {
             html.find("#tblSaldosAtuais").find("tr").each (function( index, element ) {
                 validadeStr = $(this).find(".cellValidade").first().text();
                 if (!validadeStr) return;
-                alert(validadeStr);
                 validadeNum = Date.parse(validadeStr);
-                alert(validadeNum);
-                alert(mesNum);
                 if (validadeNum == mesNum) {
                     saldoAVencerStr = $(this).find(".cellQtdHoras").first().text();
                     saldoAVencer = str2time(saldoAVencerStr);
@@ -418,8 +415,8 @@ function melhoraMesAnterior() {
 mes=$("input[name$='dataSelecionada']").val().substr(3);
 mesData=new Date(mes.substr(3,4),mes.substr(0,2)-1,1);
 if (mes==="") {
-    mesData=new Date();
-    mesData.setDate(1);
+    agora=new Date();
+    mesData=new Date(agora.getFullYear(),agora.getMonth(),1);
     mes=pad(mesData.getMonth()+1,2)+"/"+pad(mesData.getFullYear(),4);
 }
 mesNum=Date.parse(mesData);
