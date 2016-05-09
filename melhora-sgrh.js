@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora SGRH Online TRESC
 // @namespace  http://luizluca.blogspot.com/
-// @version    0.10
+// @version    0.11
 // @description Adiciona mais informações ao SGRH
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.js
@@ -24,6 +24,21 @@ function str2time(aTimeStr) {
     minutos=parseInt(aTimeStr.substr(aTimeStr.indexOf(":")+1));
     if (aTimeStr[0]=="-") minutos=-minutos;
     return horas*60+minutos;
+}
+
+function translate(aDate,aLang) {
+    switch(aLang) {
+        case "pt-BR":
+            aDate=aDate.replace(
+                /Fev/i,"Feb").replace(
+                /Abr/i,"Apr").replace(
+                /Mai/i,"May").replace(
+                /Ago/i,"Aug").replace(
+                /Set/i,"Sep").replace(
+                /Out/i,"Oct").replace(
+                /Dez/i,"Dec");
+    }
+    return aDate;
 }
 
 /*jshint multistr: true */
@@ -128,15 +143,16 @@ function melhoraMesAtual() {
     
     $.ajax({
         url: "http://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/extratoBancoHoras.do?acao=consultar",
-        success: function ( code )
+        success: function ( code, textStatus, request )
         {
             html = $(code);
+            lingua = request.getResponseHeader('Content-Language');
             saldoAVencer=null;
             
             html.find("#tblSaldosAtuais").find("tr").each (function( index, element ) {
                 validadeStr = $(this).find(".cellValidade").first().text();
                 if (!validadeStr) return;
-                validadeNum = Date.parse(validadeStr);
+                validadeNum = Date.parse(translate(validadeStr,lingua));
                 if (validadeNum == mesNum) {
                     saldoAVencerStr = $(this).find(".cellQtdHoras").first().text();
                     saldoAVencer = str2time(saldoAVencerStr);
@@ -403,7 +419,6 @@ function melhoraMesAnterior() {
                 //$("#thSaldoAtual").text("!!!");
               	//$("#thSaldoExpirado").text("!!!");
             }
-        
         },
         error: function ( code )
         {
