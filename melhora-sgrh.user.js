@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora SGRH Online TRESC
 // @namespace  http://luizluca.blogspot.com/
-// @version    0.12
+// @version    0.13
 // @description Adiciona mais informações ao SGRH
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
@@ -29,15 +29,31 @@ function str2time(aTimeStr) {
 function translate(aDate,aLang) {
     switch(aLang) {
         case "pt-BR":
-            aDate=aDate.replace(
-                /Fev/i,"Feb").replace(
-                /Abr/i,"Apr").replace(
-                /Mai/i,"May").replace(
-                /Ago/i,"Aug").replace(
-                /Set/i,"Sep").replace(
-                /Out/i,"Oct").replace(
-                /Dez/i,"Dec");
+            aDate=aDate.
+               replace(/Fev/i,"Feb").
+               replace(/Abr/i,"Apr").
+               replace(/Mai/i,"May").
+               replace(/Ago/i,"Aug").
+               replace(/Set/i,"Sep").
+               replace(/Out/i,"Oct").
+               replace(/Dez/i,"Dec").
+               toString();
     }
+    aDate="01/"+aDate.
+        replace(/Jan/i,"01").
+        replace(/Fev/i,"02").
+        replace(/Mar/i,"03").
+        replace(/Apr/i,"04").
+        replace(/May/i,"05").
+        replace(/Jun/i,"06").
+        replace(/Jul/i,"07").
+        replace(/Aug/i,"08").
+        replace(/Sep/i,"09").
+        replace(/Oct/i,"10").
+        replace(/Nov/i,"11").
+        replace(/Dec/i,"12").
+        toString();
+    aDate=aDate.split("/").reverse().join("/")
     return aDate;
 }
 
