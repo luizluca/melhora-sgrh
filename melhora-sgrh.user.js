@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora SGRH Online TRESC
 // @namespace  http://luizluca.blogspot.com/
-// @version    0.13
+// @version    0.14
 // @description Adiciona mais informações ao SGRH
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
@@ -60,41 +60,41 @@ function translate(aDate,aLang) {
 /*jshint multistr: true */
 function melhoraMesAtual() {
     extraInfo='<tr class="saldoSemCompensacao" style="display: none;">\
-                  <th colspan="9" id="headerTotais" >Totais sem HE:</th>\
+                  <th colspan="7" id="headerTotais" >Totais sem HE:</th>\
 				  <th colspan="1" class="cellTotais">&nbsp;</th>\
                   <th id="thExtraSc" colspan="1" class="cellTotais">???</th>\
                   <th colspan="2" class="cellTotais">&nbsp;</th>\
                </tr>\
 			   <tr class="saldoPositivo saldoNegativo" style="display: none;">\
-                  <th colspan="9" class="saldoPositivo" id="headerTotais" style="display: none;">Atrasos:</th>\
-				  <th colspan="9" class="saldoNegativo" id="headerTotais" style="display: none;">Hora-extra sem autorização:</th>\
+                  <th colspan="7" class="saldoPositivo" id="headerTotais" style="display: none;">Atrasos:</th>\
+				  <th colspan="7" class="saldoNegativo" id="headerTotais" style="display: none;">Hora-extra sem autorização:</th>\
                   <th colspan="1" class="cellTotais"></th>\
                   <th id="thExtra" colspan="1" class="cellTotais">???</th>\
                   <th colspan="2" class="cellTotais">&nbsp;</th>\
                </tr>\
                <tr class="saldoPositivo saldoNegativo" style="display: none;">\
-                  <th colspan="9" id="headerTotais">Saldo a vencer neste mês:</th>\
+                  <th colspan="7" id="headerTotais">Saldo a vencer neste mês:</th>\
                   <th colspan="1" class="cellTotais"></th>\
                   <th id="thSaldo" colspan="1" class="cellTotais">???</th>\
                   <th colspan="2" class="cellTotais saldoPositivo" style="display: none;">Gaste ou perca!</th>\
 				  <th colspan="2" class="cellTotais saldoNegativo" style="display: none;">Compense ou pague!</th>\
                </tr>\
 			   <tr class="saldoPositivo saldoNegativo" style="display: none;">\
-				  <th colspan="9" id="headerTotais" class="" style="">Saldo do mês atual (tirando autorizados):</th>\
+				  <th colspan="7" id="headerTotais" class="" style="">Saldo do mês atual (tirando autorizados):</th>\
 				  <th colspan="1" class="cellTotais"></th>\
                   <th id="saldoMesAtual" colspan="1" class="cellTotais" style="">???</th>\
 				  <th colspan="2" class="cellTotais">&nbsp;</th>\
                </tr>\
                <tr id="trPendente" style="display: none;">\
-                  <th colspan="9" id="headerTotais" class="saldoPositivo" style="display: none;">Você ainda precisa se atrasar:</th>\
-				  <th colspan="9" id="headerTotais" class="saldoNegativo" style="display: none;">Você ainda precisa compensar:</th>\
+                  <th colspan="7" id="headerTotais" class="saldoPositivo" style="display: none;">Você ainda precisa se atrasar:</th>\
+				  <th colspan="7" id="headerTotais" class="saldoNegativo" style="display: none;">Você ainda precisa compensar:</th>\
                   <th colspan="1" class="cellTotais"></th>\
                   <th id="thPendente" colspan="1" class="cellTotais" style="background-color: #ff0000;">???</th>\
 				  <th colspan="2" class="cellTotais">&nbsp;</th>\
                </tr>\
 			   <tr id="trResolvido" style="display: none;">\
-                  <th colspan="9" id="headerTotais" class="saldoPositivo" style="display: none;">Todo saldo do mês anterior foi aproveitado!</th>\
-				  <th colspan="9" id="headerTotais" class="saldoNegativo" style="display: none;">Todo saldo do mês anterior foi compensado!</th>\
+                  <th colspan="7" id="headerTotais" class="saldoPositivo" style="display: none;">Todo saldo do mês anterior foi aproveitado!</th>\
+				  <th colspan="7" id="headerTotais" class="saldoNegativo" style="display: none;">Todo saldo do mês anterior foi compensado!</th>\
                   <th colspan="1" class="cellTotais"></th>\
                   <th id="thResolvido" colspan="1" class="cellTotais" style="">☺☮☺</th>\
 				  <th colspan="2" class="cellTotais">&nbsp;</th>\
@@ -314,36 +314,36 @@ function melhoraMesAtual() {
 
 function melhoraMesAnterior() {
     extraInfo='<tr class="linhaTotais">\
-            <th colspan="9" class="alignRight">Saldo mês anterior:</th><th colspan="1">&nbsp;</th>\
+            <th colspan="7" class="alignRight">Saldo mês anterior:</th><th colspan="1">&nbsp;</th>\
             <th colspan="1" id="thSaldo">???</th>\
             <th colspan="5"></th>\
           </tr>\
 		  <tr class="linhaTotais saldoPositivo saldoNegativo" style="display: none;">\
-			<th colspan="9" class="alignRight saldoPositivo" style="display: none;">Atrasos Final (depois de descontado saldo do mês anterior):</th>\
-			<th colspan="9" class="alignRight saldoNegativo" style="display: none;">Hora-extra sem autorização Final (depois de descontado saldo do mês anterior):</th>\
+			<th colspan="7" class="alignRight saldoPositivo" style="display: none;">Atrasos Final (depois de descontado saldo do mês anterior):</th>\
+			<th colspan="7" class="alignRight saldoNegativo" style="display: none;">Hora-extra sem autorização Final (depois de descontado saldo do mês anterior):</th>\
             <th colspan="1">&nbsp;</th>\
             <th colspan="1" id="thExtraFinal">???</th>\
             <th colspan="5" class="saldoPositivo" style="display: none;">-mínimo("Saldo mês anterior" - Atrasos, 0)</th>\
 			<th colspan="5" class="saldoNegativo" style="display: none;">máximo("Hora-extra sem autorização" + "Saldo mês anterior",0)</th>\
           </tr>\
           <tr class="linhaTotais">\
-            <th colspan="9" class="alignRight">Saldo no mês:</th><th colspan="1">&nbsp;</th>\
+            <th colspan="7" class="alignRight">Saldo no mês:</th><th colspan="1">&nbsp;</th>\
             <th colspan="1" id="thSaldoAtual">???</th>\
 			<th colspan="5" class="saldoDesconhecido">???</th>\
             <th colspan="5" class="saldoPositivo" style="display: none;">"Hora-extra sem autorização" - "Atrasos Final"</th>\
             <th colspan="5" class="saldoNegativo" style="display: none;">"Hora-extra sem autorização Final" - Atrasos</th>\
           </tr>\
 		  <tr class="linhaTotais saldoPositivo saldoNegativo" style="display: none;">\
-            <th colspan="9" class="alignRight saldoPositivo" style="display: none;">Saldo no mês anterior utilizado:</th>\
-			<th colspan="9" class="alignRight saldoNegativo" style="display: none;">Saldo no mês anterior compensado:</th>\
+            <th colspan="7" class="alignRight saldoPositivo" style="display: none;">Saldo no mês anterior utilizado:</th>\
+			<th colspan="7" class="alignRight saldoNegativo" style="display: none;">Saldo no mês anterior compensado:</th>\
             <th colspan="1">&nbsp;</th>\
             <th colspan="1" id="thSaldoUsado">???</th>\
             <th colspan="5" class="saldoPositivo" style="display: none;">mínimo("Saldo mês anterior", Atrasos)</th>\
 			<th colspan="5" class="saldoNegativo" style="display: none;">máximo("Saldo mês anterior", -"Hora-extra sem autorização")</th>\
           </tr>\
           <tr class="linhaTotais saldoPositivo saldoNegativo" style="display: none;">\
-            <th colspan="9" class="alignRight saldoPositivo" style="display: none;">Saldo no mês anterior perdido:</th>\
-			<th colspan="9" class="alignRight saldoNegativo" style="display: none;">Saldo no mês anterior a ser pago (pecúnia ou BH):</th>\
+            <th colspan="7" class="alignRight saldoPositivo" style="display: none;">Saldo no mês anterior perdido:</th>\
+			<th colspan="7" class="alignRight saldoNegativo" style="display: none;">Saldo no mês anterior a ser pago (pecúnia ou BH):</th>\
             <th colspan="1">&nbsp;</th>\
             <th colspan="1" id="thSaldoExpirado">???</th>\
             <th colspan="5" class="saldoPositivo" style="display: none;">máximo("Saldo mês anterior" - Atrasos, 0)</th>\
