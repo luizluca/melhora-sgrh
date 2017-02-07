@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora SGRH Online TRESC
 // @namespace  http://luizluca.blogspot.com/
-// @version    0.15
+// @version    0.16
 // @description Adiciona mais informações ao SGRH
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
@@ -248,7 +248,8 @@ function melhoraMesAtual() {
                 if ($(this).parent().hasClass("fundo2")) {
                 	expediente=0;
                 } else {
-                    expediente=60*7;
+                    //expediente=60*7;
+                    expediente=60*6;
                 }
                 /*
                  $(this).siblings().each(function( index2, element2 ) {
