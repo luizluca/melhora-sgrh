@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora SGRH Online TRESC
 // @namespace  http://luizluca.blogspot.com/
-// @version    0.14
+// @version    0.15
 // @description Adiciona mais informações ao SGRH
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
@@ -53,7 +53,7 @@ function translate(aDate,aLang) {
         replace(/Nov/i,"11").
         replace(/Dec/i,"12").
         toString();
-    aDate=aDate.split("/").reverse().join("/")
+    aDate=aDate.split("/").reverse().join("/");
     return aDate;
 }
 
@@ -101,13 +101,13 @@ function melhoraMesAtual() {
                </tr>';
     $("#trBotaoImprimir").before(extraInfo);
     $("#tblEspelhoPonto").after('<div id="mensagem" title="???" style="display:none"><p>???</p></div>');
-    
+
     horasTotalEl=$(".cell10");
     horaExtraEl=$(".cell11");
-    
+
     atrasos=0;
     hENaoHomologado=0;
-    
+
     horasTotalEl.each(function( index, element ) {
         //atrasos += value;
     });
@@ -131,7 +131,7 @@ function melhoraMesAtual() {
     });
     $("#thExtraSc").text(time2str(hENaoHomologado+atrasos));
     $(".saldoSemCompensacao").show();
-    
+
     saldoAVencerUtilizado=0;
     matricula = $("#cellMatricula").text();
     // nova fonte
@@ -156,33 +156,35 @@ function melhoraMesAtual() {
             alert("Falha ao consultar Extrato de Horas");
         }
     });*/
-    
+
     $.ajax({
         url: "http://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/extratoBancoHoras.do?acao=consultar",
         success: function ( code, textStatus, request )
         {
             html = $(code);
             lingua = request.getResponseHeader('Content-Language');
-            saldoAVencer=null;
-            
+            saldoAVencer=0;
+            saldoEncontrado=false;
+
             html.find("#tblSaldosAtuais").find("tr").each (function( index, element ) {
                 validadeStr = $(this).find(".cellValidade").first().text();
                 if (!validadeStr) return;
                 validadeNum = Date.parse(translate(validadeStr,lingua));
                 if (validadeNum == mesNum) {
                     saldoAVencerStr = $(this).find(".cellQtdHoras").first().text();
-                    saldoAVencer = str2time(saldoAVencerStr);
+                    saldoAVencer += str2time(saldoAVencerStr);
+                    saldoEncontrado=true;
                     $("#thSaldo").text(time2str(saldoAVencer));
                 }
             });
 
-            if (saldoAVencer==null) {
+            if (!saldoEncontrado) {
             	alert('Saldo a vencer para o mês ' +mes+ ' não encontrado!');
                 $("#mensagem").text(code);
                 return 0;
             }
-            
-            
+
+
             if (saldoAVencer<0) {
             	//$('#thExtraFinal').text(time2str(hENaoAutorizado + saldoAVencer));
                 $("#thExtra").text(time2str(Math.abs(hENaoHomologado)));
@@ -198,7 +200,7 @@ function melhoraMesAtual() {
             }
             $(".saldoDesconhecido").hide();
             somar_saldo_mes();
-            
+
             $("#thPendente").text(time2str(pendente));
             if (pendente>0) {
                 $("#trPendente").show();
@@ -210,8 +212,8 @@ function melhoraMesAtual() {
         {
             alert("Falha ao consultar Extrato de Horas");
         }
-    })
-    
+    });
+
     extra_dia=0;
     saldoMesAtual=0;
     comAutorizacao_dia=0;
@@ -226,7 +228,7 @@ function melhoraMesAtual() {
     	$("#saldoMesAtual").text(time2str(saldoMesAtual));
     }
     somar_saldo_mes();
-    
+
     /* Timer do horário atual */
     function estimar_ponto_hoje() {
         datas=$(".cell01");
@@ -258,7 +260,7 @@ function melhoraMesAtual() {
                         }
                 });
                 expediente = total_sistema-*/
-                
+
                 $(this).siblings().each(function( index2, element2 ) {
                     if (($(this).text()==="") || $(this).hasClass("estimated")) {
                         $(this).text(horaStr);
@@ -269,7 +271,7 @@ function melhoraMesAtual() {
                 });
                 entrando=true; total=0;
                 $(this).siblings().each(function( index2, element2 ) {
-                    if ($(this).text()!="") {
+                    if ($(this).text()!=="") {
                         if (entrando) {
                             entrada=str2time($(this).text());
                         } else {
@@ -308,7 +310,7 @@ function melhoraMesAtual() {
         somar_saldo_mes();
     }
     setInterval(estimar_ponto_hoje, 1000);
-    
+
     estimar_ponto_hoje();
 }
 
@@ -351,7 +353,7 @@ function melhoraMesAnterior() {
           </tr>\
 		';
     $("#trBotaoImprimir").before(extraInfo);
-    
+
 	$(".alignRight").each(function( index, element ) {
         if ($(this).text().match("Ajustados:")) {
             atrasosEl=$(this).next().next();
@@ -376,7 +378,7 @@ function melhoraMesAnterior() {
             $(this).after('<th colspan="1">&nbsp;</th>');
        	}
     });
-    
+
 /*  Esta info não existe mais pois os bancos estao juntos!
     $.ajax({
         url: "http://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/extratoBancoHoras.do?acao=consultar",
@@ -400,7 +402,7 @@ function melhoraMesAnterior() {
                     return;
                 }
             });
-            
+
             if (saldoAVencer<0) {
                 extraFinal=hENaoAutorizado + saldoAVencer
                 saldoUsado=Math.max(-hENaoAutorizado, saldoAVencer);
@@ -413,8 +415,8 @@ function melhoraMesAnterior() {
             $('#thExtraFinal').text(time2str(extraFinal));
             $("#thSaldoUsado").text(time2str(saldoUsado));
             $(".saldoDesconhecido").hide();
-			
-            
+
+
             if ($("#thSaldoAtual").text()=="???") {
             	// Saldo de um mês não fechado!
                 if (saldoAVencer<0) {
