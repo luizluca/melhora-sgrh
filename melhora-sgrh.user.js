@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name       Melhora SGRH Online TRESC
-// @namespace  http://luizluca.blogspot.com/
-// @version    0.17
+// @namespace  https://github.com/luizluca/melhora-sgrh
+// @version    0.18
 // @description Adiciona mais informações ao SGRH
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
 // @downloadURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
 // @match      https://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/espelhoPontoMensal.do*
 // @copyright  2016+, Luiz Angelo Daros de Luca <luizluca@tre-sc.jus.br>, Luís Flávio Seelig <luisfs@tre-sc.jus.br>
-// @require    http://code.jquery.com/jquery-latest.js
+// @require    https://code.jquery.com/jquery-latest.js
 // ==/UserScript==
 
 function pad (str, max) {
@@ -137,7 +137,7 @@ function melhoraMesAtual() {
     // nova fonte
     /*
     $.ajax({
-        url: "http://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/extratoBancoHoras.do",
+        url: "https://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/extratoBancoHoras.do",
         data: {
             acao: "lancamentoMensal",
             mesAnoSelecionado: "10/2015",
@@ -158,7 +158,7 @@ function melhoraMesAtual() {
     });*/
 
     $.ajax({
-        url: "http://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/extratoBancoHoras.do?acao=consultar",
+        url: "https://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/extratoBancoHoras.do?acao=consultar",
         success: function ( code, textStatus, request )
         {
             html = $(code);
@@ -382,7 +382,7 @@ function melhoraMesAnterior() {
 
 /*  Esta info não existe mais pois os bancos estao juntos!
     $.ajax({
-        url: "http://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/extratoBancoHoras.do?acao=consultar",
+        url: "https://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/extratoBancoHoras.do?acao=consultar",
         success: function ( code )
         {
             html = $(code);
