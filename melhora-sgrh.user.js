@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora SGRH Online TRESC
 // @namespace  https://github.com/luizluca/melhora-sgrh
-// @version    0.18
+// @version    0.19
 // @description Adiciona mais informações ao SGRH
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
@@ -240,16 +240,16 @@ function melhoraMesAtual() {
             horaStr=pad(now.getHours(),2) + ":" + pad(now.getMinutes(),2);
             if (dataStr==hojeStr) {
 
-                /* TODO: Expediente pode ser variavel. Hoje fixo a 7 horas
-                         para dias normais e 0 para feriados/final de semana.
-                         De onde pegar esta info? Poderia abusar do bug
-                         do total... mas deixa para lá */
                 /* Sem expediente? (feriado, final de semana) */
                 if ($(this).parent().hasClass("fundo2")) {
                 	expediente=0;
                 } else {
-                    //expediente=60*7;
-                    expediente=60*6;
+                    // Expediente 8h a partir de Abril de ano eleitoral
+                    if ((now.getFullYear()%2==0) && (now.getMonth() >= 3)) {
+                        expediente=60*7;
+                    } else {
+                        expediente=60*6;
+                    }
                 }
                 /*
                  $(this).siblings().each(function( index2, element2 ) {
