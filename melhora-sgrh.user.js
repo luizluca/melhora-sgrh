@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora SGRH Online TRESC
 // @namespace  https://github.com/luizluca/melhora-sgrh
-// @version    0.20
+// @version    0.21
 // @description Adiciona mais informações ao SGRH
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
@@ -241,8 +241,10 @@ function melhoraMesAtual() {
 
         $("#thPendente").text(time2str(pendente));
         if (pendente>0) {
+            $("#trResolvido").hide();
             $("#trPendente").show();
         } else {
+            $("#trPendente").hide();
             $("#trResolvido").show();
         }
 
