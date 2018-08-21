@@ -1,13 +1,14 @@
 // ==UserScript==
-// @name       Melhora SGRH Online e o portal do servidor
+// @name       Melhora Portal do Servidor
 // @namespace  https://github.com/luizluca/melhora-sgrh
-// @version    1.0
-// @description Adiciona mais informações ao SGRH
+// @version    1.1
+// @description Adiciona mais informações ao Portal do Servidor
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
 // @downloadURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
 // @match      https://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/espelhoPontoMensal.do*
 // @match      https://sistemas5.tre-sc.gov.br/portal-servidor/EspelhoPontoMesAction_recuperar.action
+// @match      https://sistemas5.tre-sc.gov.br/portal-servidor/_/EspelhoPontoMesAction_recuperar
 // @match      https://sistemas5.tre-sc.gov.br/portal-servidor/EspelhoPontoMesAction_formEspelhoPontoMes_consultar
 // @copyright  2016+, Luiz Angelo Daros de Luca <luizluca@tre-sc.jus.br>, Luís Flávio Seelig <luisfs@tre-sc.jus.br>
 // @require    https://code.jquery.com/jquery-latest.js
