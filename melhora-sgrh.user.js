@@ -1,34 +1,39 @@
 // ==UserScript==
-// @name       Melhora SGRH Online TRESC
+// @name       Melhora SGRH Online e o portal do servidor
 // @namespace  https://github.com/luizluca/melhora-sgrh
-// @version    0.21
+// @version    1.0
 // @description Adiciona mais informações ao SGRH
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
 // @downloadURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
 // @match      https://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/espelhoPontoMensal.do*
+// @match      https://sistemas5.tre-sc.gov.br/portal-servidor/EspelhoPontoMesAction_recuperar.action
+// @match      https://sistemas5.tre-sc.gov.br/portal-servidor/EspelhoPontoMesAction_formEspelhoPontoMes_consultar
 // @copyright  2016+, Luiz Angelo Daros de Luca <luizluca@tre-sc.jus.br>, Luís Flávio Seelig <luisfs@tre-sc.jus.br>
 // @require    https://code.jquery.com/jquery-latest.js
 // ==/UserScript==
+
+/*global $:false, jQuery:false */
+/*jshint multistr: true */
 
 function pad (str, max) {
   return (""+str).length < max ? pad("0" + str, max) : str;
 }
 
 function time2str(aTime) {
-    return (aTime<0?"-":"") + pad(Math.floor(Math.abs(aTime/60)),2) + ":" + pad(Math.abs(aTime%60),2);
+    return (aTime<0?"-":"") + pad(Math.floor(Math.abs(aTime/(60000*60))),2) + ":" + pad(Math.floor(Math.abs(aTime/60000%60)),2);
 }
 
 function str2time(aTimeStr) {
     var horas=parseInt(aTimeStr.substr(0,aTimeStr.indexOf(":")));
     var minutos=parseInt(aTimeStr.substr(aTimeStr.indexOf(":")+1));
     if (aTimeStr[0]=="-") minutos=-minutos;
-    return horas*60+minutos;
+    return (horas*60+minutos)*60*1000;
 }
 
-function translate(aDate,aLang) {
+function str2date(aDate,aLang) {
     switch(aLang) {
-        case "pt-BR":
+        case "pt_BR":
             aDate=aDate.
                replace(/Fev/i,"Feb").
                replace(/Abr/i,"Apr").
@@ -39,7 +44,7 @@ function translate(aDate,aLang) {
                replace(/Dez/i,"Dec").
                toString();
     }
-    aDate="01/"+aDate.
+    aDate=aDate.
         replace(/Jan/i,"01").
         replace(/Fev/i,"02").
         replace(/Mar/i,"03").
@@ -54,437 +59,214 @@ function translate(aDate,aLang) {
         replace(/Dec/i,"12").
         toString();
     aDate=aDate.split("/").reverse().join("/");
-    return aDate;
+    return new Date(aDate);
 }
 
-var saldoAVencer=0
-var pendente=0
-var extraInfo=""
-var extra_dia=0;
-var saldoMesAtual=0;
-var comAutorizacao_dia=0;
-var saldoEncontrado=false;
-
-/*global $:false, jQuery:false */
-/*jshint multistr: true */
-function melhoraMesAtual() {
-    extraInfo='<tr class="saldoSemCompensacao" style="display: none;">\
-                  <th colspan="7" id="headerTotais" >Totais sem HE:</th>\
-				  <th colspan="1" class="cellTotais">&nbsp;</th>\
-                  <th id="thExtraSc" colspan="1" class="cellTotais">???</th>\
-                  <th colspan="2" class="cellTotais">&nbsp;</th>\
-               </tr>\
-			   <tr class="saldoPositivo saldoNegativo" style="display: none;">\
-                  <th colspan="7" class="saldoPositivo" id="headerTotais" style="display: none;">Atrasos:</th>\
-				  <th colspan="7" class="saldoNegativo" id="headerTotais" style="display: none;">Hora-extra sem autorização:</th>\
-                  <th colspan="1" class="cellTotais"></th>\
-                  <th id="thExtra" colspan="1" class="cellTotais">???</th>\
-                  <th colspan="2" class="cellTotais">&nbsp;</th>\
-               </tr>\
-               <tr class="saldoPositivo saldoNegativo" style="display: none;">\
-                  <th colspan="7" id="headerTotais">Saldo a vencer neste mês:</th>\
-                  <th colspan="1" class="cellTotais"></th>\
-                  <th id="thSaldo" colspan="1" class="cellTotais">???</th>\
-                  <th colspan="2" class="cellTotais saldoPositivo" style="display: none;">Gaste ou perca!</th>\
-				  <th colspan="2" class="cellTotais saldoNegativo" style="display: none;">Compense ou pague!</th>\
-               </tr>\
-			   <tr class="saldoPositivo saldoNegativo" style="display: none;">\
-				  <th colspan="7" id="headerTotais" class="" style="">Saldo do mês atual (tirando autorizados):</th>\
-				  <th colspan="1" class="cellTotais"></th>\
-                  <th id="saldoMesAtual" colspan="1" class="cellTotais" style="">???</th>\
-				  <th colspan="2" class="cellTotais">&nbsp;</th>\
-               </tr>\
-               <tr id="trPendente" style="display: none;">\
-                  <th colspan="7" id="headerTotais" class="saldoPositivo" style="display: none;">Você ainda precisa se atrasar:</th>\
-				  <th colspan="7" id="headerTotais" class="saldoNegativo" style="display: none;">Você ainda precisa compensar:</th>\
-                  <th colspan="1" class="cellTotais"></th>\
-                  <th id="thPendente" colspan="1" class="cellTotais" style="background-color: #ff0000;">???</th>\
-				  <th colspan="2" class="cellTotais">&nbsp;</th>\
-               </tr>\
-			   <tr id="trResolvido" style="display: none;">\
-                  <th colspan="7" id="headerTotais" class="saldoPositivo" style="display: none;">Todo saldo do mês anterior foi aproveitado!</th>\
-				  <th colspan="7" id="headerTotais" class="saldoNegativo" style="display: none;">Todo saldo do mês anterior foi compensado!</th>\
-                  <th colspan="1" class="cellTotais"></th>\
-                  <th id="thResolvido" colspan="1" class="cellTotais" style="">☺☮☺</th>\
-				  <th colspan="2" class="cellTotais">&nbsp;</th>\
-               </tr>';
-    $("#trBotaoImprimir").before(extraInfo);
-    $("#tblEspelhoPonto").after('<div id="mensagem" title="???" style="display:none"><p>???</p></div>');
-
-    var horasTotalEl=$(".cell10");
-    var horaExtraEl=$(".cell11");
-
-    var atrasos=0;
-    var hENaoHomologado=0;
-
-    horasTotalEl.each(function( index, element ) {
-        //atrasos += value;
-    });
-    horaExtraEl.each(function( index, element ) {
-        var extraStr = $(this).text();
-        var extra = str2time(extraStr);
-        if (extra<0) {
-                atrasos += extra;
-        }
-        if (extra>0) {
-            	comAutorizacao=0;
-              	$(this).siblings().filter(".cell13").find("img").each(function( index, element ) {
-                    if ($(this).attr('title').match("autorização")) {
-                    	comAutorizacao=1;
-                    }
-                });
-            	if (!comAutorizacao) {
-	                hENaoHomologado += extra;
-    	        }
-        }
-    });
-    $("#thExtraSc").text(time2str(hENaoHomologado+atrasos));
-    $(".saldoSemCompensacao").show();
-
-    var saldoAVencerUtilizado=0;
-    var matricula = $("#cellMatricula").text();
-    // nova fonte
-    /*
-    $.ajax({
-        url: "https://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/extratoBancoHoras.do",
-        data: {
-            acao: "lancamentoMensal",
-            mesAnoSelecionado: "10/2015",
-            "unidadeSelecionada.codigo": 0, //segurança disso?!
-            "servidorSelecionado.matricula": matricula // Isto nao eh validado... pode ser qualquer pessoa >:)
-        },
-        type: "POST",
-        success: function ( code )
-        {
-            html = $(code);
-            console.log(code);
-            alert(html.$("#tituloTblCreditosUtilizados"));
-        },
-        error: function ( code )
-        {
-            alert("Falha ao consultar Extrato de Horas");
-        }
-    });*/
-
-    $.ajax({
-        url: "https://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/extratoBancoHoras.do?acao=consultar",
-        success: function ( code, textStatus, request )
-        {
-            var html = $(code);
-            var lingua = request.getResponseHeader('Content-Language');
-
-            html.find("#tblSaldosAtuais").find("tr").each (function( index, element ) {
-                var validadeStr = $(this).find(".cellValidade").first().text();
-                if (!validadeStr) return;
-                var validadeNum = Date.parse(translate(validadeStr,lingua));
-                if (validadeNum == mesNum) {
-                    var saldoAVencerStr = $(this).find(".cellQtdHoras").first().text();
-                    saldoAVencer += str2time(saldoAVencerStr);
-                    saldoEncontrado=true;
-                    $("#thSaldo").text(time2str(saldoAVencer));
-                }
-            });
-
-            if (!saldoEncontrado) {
-            	alert('Saldo a vencer para o mês ' +mes+ ' não encontrado!');
-                $("#mensagem").text(code);
-                return 0;
-            }
-
-            somar_saldo_mes();
-            $(".saldoDesconhecido").hide();
-
-            setInterval(estimar_ponto_hoje, 1000);
-            estimar_ponto_hoje();
-        },
-        error: function ( code )
-        {
-            alert("Falha ao consultar Extrato de Horas");
-        }
-    });
-
-    function somar_saldo_mes() {
-        //console.log("saldoAVencer="+saldoAVencer)
-        //console.log("saldoAVencerUtilizado="+saldoAVencerUtilizado)
-        //console.log("extra_dia="+extra_dia)
-        if (comAutorizacao_dia && (extra_dia > 0)) {
-            // Hora-extra autorizada não conta no saldo
-            extra_dia=0
-        }
-        //console.log("extra_dia_soma="+extra_dia)
-
-        // Considera o feito hoje para somas
-        var hENaoHomologado_agora=hENaoHomologado+(extra_dia>0?extra_dia:0)
-        var atrasos_agora=atrasos+(extra_dia<0?extra_dia:0)
-        //console.log("hENaoHomologado_agora="+hENaoHomologado_agora)
-        //console.log("atrasos_agora="+atrasos_agora)
-
-        if (saldoAVencer<0) {
-            //$('#thExtraFinal').text(time2str(hENaoAutorizado + saldoAVencer));
-            $("#thExtra").text(time2str(Math.abs(hENaoHomologado)));
-            $(".saldoNegativo").show();
-            //$(".saldoPositivo").hide();
-            pendente=-saldoAVencer-hENaoHomologado_agora;
-            saldoAVencerUtilizado=Math.max(saldoAVencer, -(hENaoHomologado_agora));
-            saldoMesAtual = hENaoHomologado_agora + atrasos_agora + saldoAVencerUtilizado;
-        } else {
-            //$('#thExtraFinal').text(time2str(Math.min(saldoAVencer - atrasos,0)));
-            $("#thExtra").text(time2str(Math.abs(atrasos_agora)));
-            $(".saldoPositivo").show();
-            //$(".saldoNegativo").hide();
-            pendente=saldoAVencer+atrasos_agora;
-            saldoAVencerUtilizado=Math.min(saldoAVencer, -atrasos_agora);
-            saldoMesAtual = hENaoHomologado_agora + atrasos_agora + saldoAVencerUtilizado;
-        }
-        $("#saldoMesAtual").css('color', 'red');
-    	$("#saldoMesAtual").text(time2str(saldoMesAtual));
-
-        $("#thPendente").text(time2str(pendente));
-        if (pendente>0) {
-            $("#trResolvido").hide();
-            $("#trPendente").show();
-        } else {
-            $("#trPendente").hide();
-            $("#trResolvido").show();
-        }
-
-        //console.log("pendente="+pendente)
-    }
-
-    /* Timer do horário atual */
-    function estimar_ponto_hoje() {
-        var datas=$(".cell01");
-        datas.each(function( index, element ) {
-            var dataStr = $(this).text();
-            var now=new Date();
-            var periodoEstimado=0;
-            var hojeStr=pad(now.getDate(),2) + "/" + pad(now.getMonth()+1,2) + "/" + now.getFullYear();
-            var horaStr=pad(now.getHours(),2) + ":" + pad(now.getMinutes(),2);
-            if (dataStr==hojeStr) {
-
-                /* Sem expediente? (feriado, final de semana) */
-                if ($(this).parent().hasClass("fundo2")) {
-                    var expediente=0;
-                } else {
-                    // Expediente 8h a partir de Abril de ano eleitoral
-                    if ((now.getFullYear()%2==0) && (now.getMonth() >= 3)) {
-                        expediente=60*7;
-                    } else {
-                        expediente=60*6;
-                    }
-                }
-                /*
-                 $(this).siblings().each(function( index2, element2 ) {
-                        if ($(this).hasClass("cell10")) {
-                            total_sistema=str2time($(this).text());
-                        }
-                        if ($(this).hasClass("cell11")) {
-                            extra_sistema=str2time($(this).text());
-                        }
-                });
-                expediente = total_sistema-*/
-
-                $(this).siblings().each(function( index2, element2 ) {
-                    if (($(this).text()==="") || $(this).hasClass("estimated")) {
-                        $(this).text(horaStr);
-                        $(this).css('color', 'red');
-                        $(this).addClass("estimated");
-                        return false;
-                    }
-                });
-                var entrando=true; var total=0;
-                var entrada="";
-                $(this).siblings().each(function( index2, element2 ) {
-                    if ($(this).text()!=="") {
-                        if (entrando) {
-                            entrada=str2time($(this).text());
-                        } else {
-                            total+=str2time($(this).text())-entrada;
-                            if ($(this).hasClass("estimated")) {
-                            	periodoEstimado+=str2time($(this).text())-entrada;
-                            }
-                        }
-                        entrando=!entrando;
-                    } else {
-                        return false;
-                    }
-                });
-                if (periodoEstimado>0) {
-                    $(this).siblings().each(function( index2, element2 ) {
-                        if ($(this).hasClass("cell10")) {
-                            var faltando=str2time($(this).text());
-                            $(this).text(time2str(total));
-                            $(this).css('color', 'red');
-                        }
-                        if ($(this).hasClass("cell11")) {
-                            extra_dia=total-expediente;
-                            $(this).text(time2str(extra_dia));
-                            $(this).css('color', 'red');
-                        }
-                    });
-                }
-                comAutorizacao_dia=0;
-              	$(this).siblings().filter(".cell13").find("img").each(function( index, element ) {
-                    if ($(this).attr('title').match("autorização")) {
-                    	comAutorizacao_dia=1;
-                    }
-                });
-            }
-        });
-        somar_saldo_mes();
+class RegistroDia {
+    constructor(dia) {
+        this.dia=dia
+        this.eventos=[]
     }
 }
 
-function melhoraMesAnterior() {
-    extraInfo='<tr class="linhaTotais">\
-            <th colspan="7" class="alignRight">Saldo mês anterior:</th><th colspan="1">&nbsp;</th>\
-            <th colspan="1" id="thSaldo">???</th>\
-            <th colspan="5"></th>\
-          </tr>\
-		  <tr class="linhaTotais saldoPositivo saldoNegativo" style="display: none;">\
-			<th colspan="7" class="alignRight saldoPositivo" style="display: none;">Atrasos Final (depois de descontado saldo do mês anterior):</th>\
-			<th colspan="7" class="alignRight saldoNegativo" style="display: none;">Hora-extra sem autorização Final (depois de descontado saldo do mês anterior):</th>\
-            <th colspan="1">&nbsp;</th>\
-            <th colspan="1" id="thExtraFinal">???</th>\
-            <th colspan="5" class="saldoPositivo" style="display: none;">-mínimo("Saldo mês anterior" - Atrasos, 0)</th>\
-			<th colspan="5" class="saldoNegativo" style="display: none;">máximo("Hora-extra sem autorização" + "Saldo mês anterior",0)</th>\
-          </tr>\
-          <tr class="linhaTotais">\
-            <th colspan="7" class="alignRight">Saldo no mês:</th><th colspan="1">&nbsp;</th>\
-            <th colspan="1" id="thSaldoAtual">???</th>\
-			<th colspan="5" class="saldoDesconhecido">???</th>\
-            <th colspan="5" class="saldoPositivo" style="display: none;">"Hora-extra sem autorização" - "Atrasos Final"</th>\
-            <th colspan="5" class="saldoNegativo" style="display: none;">"Hora-extra sem autorização Final" - Atrasos</th>\
-          </tr>\
-		  <tr class="linhaTotais saldoPositivo saldoNegativo" style="display: none;">\
-            <th colspan="7" class="alignRight saldoPositivo" style="display: none;">Saldo no mês anterior utilizado:</th>\
-			<th colspan="7" class="alignRight saldoNegativo" style="display: none;">Saldo no mês anterior compensado:</th>\
-            <th colspan="1">&nbsp;</th>\
-            <th colspan="1" id="thSaldoUsado">???</th>\
-            <th colspan="5" class="saldoPositivo" style="display: none;">mínimo("Saldo mês anterior", Atrasos)</th>\
-			<th colspan="5" class="saldoNegativo" style="display: none;">máximo("Saldo mês anterior", -"Hora-extra sem autorização")</th>\
-          </tr>\
-          <tr class="linhaTotais saldoPositivo saldoNegativo" style="display: none;">\
-            <th colspan="7" class="alignRight saldoPositivo" style="display: none;">Saldo no mês anterior perdido:</th>\
-			<th colspan="7" class="alignRight saldoNegativo" style="display: none;">Saldo no mês anterior a ser pago (pecúnia ou BH):</th>\
-            <th colspan="1">&nbsp;</th>\
-            <th colspan="1" id="thSaldoExpirado">???</th>\
-            <th colspan="5" class="saldoPositivo" style="display: none;">máximo("Saldo mês anterior" - Atrasos, 0)</th>\
-			<th colspan="5" class="saldoNegativo" style="display: none;">mínimo("Hora-extra sem autorização" + "Saldo mês anterior", 0)</th>\
-          </tr>\
-		';
-    $("#trBotaoImprimir").before(extraInfo);
+Date.prototype.days_in_month = function() {
+    return (new Date(this.getFullYear(),this.getMonth()+1,0)).getDate();
+};
 
-	$(".alignRight").each(function( index, element ) {
-        if ($(this).text().match("Ajustados:")) {
-            var atrasosEl=$(this).next().next();
-            var atrasosStr=atrasosEl.text();
-            // Retira sinal dos atrasos (sempre negativo)
-            var atrasos=-str2time(atrasosStr);
-            $(this).text("Atrasos:");
-            atrasosEl.text(time2str(atrasos));
-            $(this).next().next().next().text("soma dos excedentes negativos, consome saldo do mês anterior se positivo");
-       	}
-        if ($(this).text().match("Horas Homologadas:")) {
-            $(this).text("Hora-extra com autorização (não usado pelo TRESC):");
-            $(this).parent().hide();
-       	}
-        if ($(this).text().match("Não-Homologadas:")) {
-            var hENaoAutorizadoEl=$(this).next();
-            var hENaoAutorizadoStr=hENaoAutorizadoEl.text();
-            var hENaoAutorizado=str2time(hENaoAutorizadoStr);
-            $(this).text("Hora-extra sem autorização:");
-            $(this).next().next().text("soma dos excedentes positivos, compensa saldo do mês anterior se negativo");
-            $(this).next().next().attr('colspan',5);
-            $(this).after('<th colspan="1">&nbsp;</th>');
-       	}
-    });
+class EspelhoPonto {
+    constructor() {
+        this.recarrega()
+    }
 
-/*  Esta info não existe mais pois os bancos estao juntos!
-    $.ajax({
-        url: "https://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/extratoBancoHoras.do?acao=consultar",
-        success: function ( code )
-        {
-            html = $(code);
-            html.find("td").filter(".cellMesAno").each(function( index, element ) {
-                //HACK: Usando match pois o mes atual tem espaços
-                if ($(this).text().match(mesAnterior)) {
-                    saldoAVencerStr = $(this).siblings().filter(".cellHorasRemanescentes").first().text();
-                    saldoAVencer = str2time(saldoAVencerStr);
-                    //saldoAVencer += 600;
-                    $("#thSaldo").text(time2str(saldoAVencer));
-                    return;
-                }
-                if ($(this).text().match(mes)) {
-                    saldoAtual=str2time($(this).siblings().filter(".cellHorasRemanescentes").text());
-                    saldoExpirado=str2time($(this).siblings().filter(".cellHorasVencidas").text());
-                    $("#thSaldoAtual").text(time2str(saldoAtual));
-                  	$("#thSaldoExpirado").text(time2str(saldoExpirado));
-                    return;
-                }
-            });
+    agora() {
+        var agora=new Date();
+        var hoje=new Date(agora.getFullYear(),agora.getMonth(),agora.getDate())
+        var hoje_str=hoje.toLocaleString().slice(0, 10);
+        //$("td:contains('"+today_str+"')")
+        var found=this.tabela.find("td:contains('"+hoje_str+"')")
+        if (found.lentgh==0) return;
+        var linha=found.parent();
+        var soma_dia=0
 
-            if (saldoAVencer<0) {
-                extraFinal=hENaoAutorizado + saldoAVencer
-                saldoUsado=Math.max(-hENaoAutorizado, saldoAVencer);
-                 $(".saldoNegativo").show();
+        var expediente=0;
+        if ($(linha).hasClass("fundo2")) {
+            expediente=0;
+        } else {
+            // Expediente 8h a partir de Abril de ano eleitoral
+            if ((hoje.getFullYear()%2==0) && (hoje.getMonth() >= 3)) {
+                expediente=7*60*60*1000;
             } else {
-                extraFinal=Math.abs(Math.min(saldoAVencer - atrasos,0));
-                saldoUsado=Math.min(atrasos, saldoAVencer);
-                $(".saldoPositivo").show();
+                expediente=6*60*60*1000;
             }
-            $('#thExtraFinal').text(time2str(extraFinal));
-            $("#thSaldoUsado").text(time2str(saldoUsado));
-            $(".saldoDesconhecido").hide();
-
-
-            if ($("#thSaldoAtual").text()=="???") {
-            	// Saldo de um mês não fechado!
-                if (saldoAVencer<0) {
-                    saldoAtual=extraFinal - atrasos;
-                    alert(time2str(hENaoAutorizado));
-                    alert(time2str(saldoAVencer));
-                    saldoExpirado=Math.min(hENaoAutorizado+saldoAVencer,0);
-                } else {
-                    saldoAtual=hENaoAutorizado -extraFinal;
-                    saldoExpirado=Math.max(saldoAVencer - atrasos,0);
-                }
-                $("#thSaldoAtual").css('color', 'red');
-                $("#thSaldoExpirado").css('color', 'red');
-                $("#thSaldoAtual").text(time2str(saldoAtual));
-                $("#thSaldoExpirado").text(time2str(saldoExpirado));
-                //máximo("Saldo mês anterior" - Atrasos, 0)
-
-                //$("#thSaldoAtual").text("!!!");
-              	//$("#thSaldoExpirado").text("!!!");
-            }
-        },
-        error: function ( code )
-        {
-            alert("Falha ao consultar Extrato de Horas");
         }
-    });*/
-}
 
-var mes=$("input[name$='dataSelecionada']").val().substr(3);
-var mesData=new Date(mes.substr(3,4),mes.substr(0,2)-1,1);
-if (mes==="") {
-    var agora=new Date();
-    mesData=new Date(agora.getFullYear(),agora.getMonth(),1);
-    mes=pad(mesData.getMonth()+1,2)+"/"+pad(mesData.getFullYear(),4);
-}
-var mesNum=Date.parse(mesData);
-var mesAnteriorData=new Date(mesData.getFullYear(),mesData.getMonth()-1,1);
-var mesAnterior=pad(mesAnteriorData.getMonth()+1,2)+"/"+pad(mesAnteriorData.getFullYear(),4);
+        for (var j=0;j<3;j++) {
+            var entrada=linha.children()[j*2+1].innerHTML;
+            if (entrada=="") break;
+            entrada=str2time(entrada);
+            var saida=linha.children()[j*2+2];
+            if ($(saida).hasClass("dinamico") || (saida.innerHTML=="")) {
+                saida=(agora.getTime()-hoje.getTime())
+                this.atualiza_campo(linha.children()[j*2+2],time2str(saida))
+            } else {
+                saida=str2time(saida.innerHTML);
+            }
 
-var referencia = $("#conteudo").find("span").filter(".vermelho").text();
-if (referencia != "Mês Corrente") {
-    //HACK: Mes sem acento?
-    if ((referencia == "Mes Fechado") || (referencia == "Mes Não Fechado") || (referencia == "Mês Fechado") || (referencia == "Mês Não Fechado")) {
-        melhoraMesAnterior();
-    } else {
-        alert("Tipo de página desconhecida!: "+ referencia);
+            soma_dia+=saida-entrada
+        }
+        this.atualiza_campo(linha.children()[8],time2str(soma_dia));
+        this.atualiza_campo(linha.children()[9],time2str(soma_dia-expediente));
+        this.recarrega()
+        this.atualiza_resumos()
     }
+
+    recarrega(){
+        this.tabela=$("#tblEspelhoPontoMesCorrente tr");
+        this.mes=str2date(this.tabela[1].children[0].innerHTML,"pt_BR");
+        //var num_dias=new Date(this.mes).setDate();
+        this.num_dias=this.mes.days_in_month()
+        this.jornada=new Array(this.num_dias);
+        this.excedentes=new Array(this.num_dias);
+        this.autorizacoesHE=new Array(this.num_dias);
+        for (var i=1;i<=this.num_dias;i++) {
+            var linha=this.tabela[i]
+            var dia=linha.children[0].innerHTML;
+            //for (var j=0;j<3;j++) {
+            //    var entrada=linha.children[j*2+1].innerHTML;
+            //    var saida=linha.children[j*2+2].innerHTML;
+            //}
+            var total=str2time(linha.children[8].innerHTML);
+            var excedente=str2time(linha.children[9].innerHTML);
+            var autorizacaoHE=linha.children[15].children.length>0;
+            this.jornada[i-1]=total;
+            this.excedentes[i-1]=excedente;
+            this.autorizacoesHE[i-1]=autorizacaoHE
+        }
+    }
+
+    jornada_mensal() {
+        var soma=0;
+        for (var i=0;i<this.num_dias;i++) {
+            soma+=this.jornada[i];
+        }
+        return soma;
+    }
+
+    atrasos(){
+        var soma=0;
+        for (var i=0;i<this.num_dias;i++) {
+            if (this.excedentes[i]<0) {
+                soma-=this.excedentes[i];
+            }
+        }
+        return soma;
+    }
+
+    extras(){
+        var soma=0;
+        for (var i=0;i<this.num_dias;i++) {
+            if (this.excedentes[i]>0) {
+                soma+=this.excedentes[i];
+            }
+        }
+        return soma;
+    }
+
+    extras_autorizacao(autorizado){
+        var soma=0;
+        for (var i=0;i<this.num_dias;i++) {
+            if ((this.excedentes[i]>0) && (this.autorizacoesHE[i]==autorizado)) {
+                soma+=this.excedentes[i];
+            }
+        }
+        return soma;
+    }
+
+    saldo_mes_anterior(){
+        // TODO: melhorar por causa do mes anterior!
+        return str2time($(this.tabela[this.num_dias+12].children[1]).find("*").contents().eq(0).text());
+    }
+
+    atualiza_resumos(){
+
+        var atrasos=this.atrasos()
+        var extras=this.extras()
+        var extras_naoautorizados=this.extras_autorizacao(false)
+
+        // Totais
+        this.atualiza_campo(this.tabela[this.num_dias+1].children[1],time2str(this.jornada_mensal()))
+        this.atualiza_campo(this.tabela[this.num_dias+1].children[2],time2str(extras-atrasos))
+
+        // Banco de horas
+        var saldo_avencer=this.saldo_mes_anterior()
+        var saldo_consumido=0
+        var pendente=0
+        var residuo=0
+        var msg_pendente=""
+        var saldo_mes=0
+
+        //saldo_avencer=-5*60*60*1000
+        //console.log("saldo a vencer:",time2str(saldo_avencer))
+        //console.log("atrasos:",time2str(atrasos));
+
+        if (saldo_avencer>0) {
+             // Estamos sobreando, consuma dos atrasos
+            pendente=Math.max(0,saldo_avencer-atrasos);
+            saldo_consumido=Math.min(saldo_avencer, atrasos);
+            msg_pendente="Gaste ou perca!"
+        } else {
+            // Estamos devendo, consuma dos extras não homologados
+            pendente=Math.min(0,saldo_avencer+extras_naoautorizados);
+            saldo_consumido=Math.max(saldo_avencer, -extras_naoautorizados);
+            msg_pendente="Compense ou pague!"
+        }
+        residuo=saldo_avencer-saldo_consumido
+        saldo_mes=extras_naoautorizados-atrasos+saldo_consumido
+        //console.log("pendente:",time2str(pendente))
+        //console.log("consumido:",time2str(saldo_consumido))
+
+        this.atualiza_campo(this.campo("Horas Utilizadas do Banco de Horas:"),time2str(saldo_consumido))
+        this.atualiza_campo(this.campo("Resíduo de Horas:"),time2str(pendente))
+        if (pendente==0) msg_pendente="☺☮☺"
+        this.atualiza_campo($(this.campo("Resíduo de Horas:")).next()[0],msg_pendente)
+        this.atualiza_campo($(this.campo("Saldo do Banco de Horas:")).next()[0],"Próximo mês: "+time2str(saldo_mes))
+    }
+
+    campo(label) {
+        var found=this.tabela.find("td:contains('"+label+"')")
+        if (found.lentgh==0) return;
+        return found.next()[0];
+    }
+
+    atualiza_campo(campo,valor) {
+        $(campo).css('color', 'red');
+        $(campo).addClass('dinamico');
+        campo.innerHTML=valor;
+    }
+}
+
+function on_minuto() {
+    espelho.agora()
+}
+
+if ($("td:contains('Mês fechado pelo sistema.')").length==0) {
+    // Mês atual
+    var espelho=new EspelhoPonto();
+    espelho.agora();
+
+    // Roda na virada do minuto
+    setTimeout(function() {
+        on_minuto();
+        setInterval(on_minuto, 60000);
+    }, (60 - (new Date()).getSeconds()) * 1000);
+
+//    console.log("saldo:",time2str(espelho.saldo_mes_anterior()));
+//    console.log("atrasos:",time2str(espelho.atrasos()));
+//    console.log("extras:",time2str(espelho.extras()));
+//    console.log("extras autorizados:",time2str(espelho.extras_autorizacao(true)));
+//    console.log("extras n autorizados:",time2str(espelho.extras_autorizacao(false)));
+//    console.log("jornada:",time2str(espelho.jornada_mensal()));
+//    console.log("final:",time2str(espelho.extras()-espelho.atrasos()));
 } else {
-    melhoraMesAtual();
+    // Mês fechado
 }
