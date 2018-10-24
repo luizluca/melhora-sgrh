@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora Portal do Servidor
 // @namespace  https://github.com/luizluca/melhora-sgrh
-// @version    1.1
+// @version    1.2
 // @description Adiciona mais informações ao Portal do Servidor
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
@@ -63,32 +63,27 @@ function str2date(aDate,aLang) {
     return new Date(aDate);
 }
 
-class RegistroDia {
-    constructor(dia) {
-        this.dia=dia
-        this.eventos=[]
-    }
-}
-
 Date.prototype.days_in_month = function() {
     return (new Date(this.getFullYear(),this.getMonth()+1,0)).getDate();
 };
 
 class EspelhoPonto {
     constructor() {
-        this.recarrega()
+        this.tabela=$("#tblEspelhoPontoMesCorrente tr");
+        this.mes=str2date(this.tabela[1].children[0].innerHTML,"pt_BR");
+        this.num_dias=this.mes.days_in_month()
+        this.saldo_mes_anterior=null;
+        this.atualiza_tudo();
     }
 
     agora() {
         var agora=new Date();
         var hoje=new Date(agora.getFullYear(),agora.getMonth(),agora.getDate())
         var hoje_str=hoje.toLocaleString().slice(0, 10);
-        //$("td:contains('"+today_str+"')")
         var found=this.tabela.find("td:contains('"+hoje_str+"')")
         if (found.lentgh==0) return;
         var linha=found.parent();
         var soma_dia=0
-
         var expediente=0;
         if ($(linha).hasClass("fundo2")) {
             expediente=0;
@@ -122,10 +117,6 @@ class EspelhoPonto {
     }
 
     recarrega(){
-        this.tabela=$("#tblEspelhoPontoMesCorrente tr");
-        this.mes=str2date(this.tabela[1].children[0].innerHTML,"pt_BR");
-        //var num_dias=new Date(this.mes).setDate();
-        this.num_dias=this.mes.days_in_month()
         this.jornada=new Array(this.num_dias);
         this.excedentes=new Array(this.num_dias);
         this.autorizacoesHE=new Array(this.num_dias);
@@ -136,9 +127,14 @@ class EspelhoPonto {
             //    var entrada=linha.children[j*2+1].innerHTML;
             //    var saida=linha.children[j*2+2].innerHTML;
             //}
-            var total=str2time(linha.children[8].innerHTML);
-            var excedente=str2time(linha.children[9].innerHTML);
-            var autorizacaoHE=linha.children[15].children.length>0;
+            var total=0;
+            var excedente=0;
+            var autorizacaoHE=false;
+            if (linha.children.length==16) {
+                total=str2time(linha.children[8].innerHTML);
+                excedente=str2time(linha.children[9].innerHTML);
+                autorizacaoHE=linha.children[15].children.length>0;
+            }
             this.jornada[i-1]=total;
             this.excedentes[i-1]=excedente;
             this.autorizacoesHE[i-1]=autorizacaoHE
@@ -183,9 +179,36 @@ class EspelhoPonto {
         return soma;
     }
 
-    saldo_mes_anterior(){
-        // TODO: melhorar por causa do mes anterior!
-        return str2time($(this.tabela[this.num_dias+12].children[1]).find("*").contents().eq(0).text());
+    atualiza_tudo(){
+        var mes_anterior=new Date(this.mes.getFullYear(),this.mes.getMonth()-1,1);
+        var mes_ano_anterior=(mes_anterior.getMonth()+1)+"/"+mes_anterior.getFullYear()
+        var espelho=this;
+        //console.log("Buscando saldo de "+mes_ano_anterior+"...");
+        $.ajax({
+            url: "https://sistemas5.tre-sc.gov.br/portal-servidor/BancoHorasAction_recuperarExtrato",
+            success: function ( code, textStatus, request )
+            {
+                var html = $(code);
+                var lingua = request.getResponseHeader('Content-Language');
+                html.find("table").find("tr").each (function( index, linha ) {
+                    var mes=linha.children[1].innerHTML;
+                    if (mes != mes_ano_anterior) return true;
+                    espelho.saldo_mes_anterior=str2time(linha.children[5].innerHTML)
+                    //console.log("saldo: "+time2str(espelho.saldo_mes_anterior));
+                    //console.log("atrasos:",time2str(espelho.atrasos()));
+                    //console.log("extras:",time2str(espelho.extras()));
+                    //console.log("extras autorizados:",time2str(espelho.extras_autorizacao(true)));
+                    //console.log("extras n autorizados:",time2str(espelho.extras_autorizacao(false)));
+                    //console.log("jornada:",time2str(espelho.jornada_mensal()));
+                    espelho.agora();
+                    return false;
+                });
+            },
+            error: function ( code )
+            {
+                alert("Falha ao consultar saldo de horas do mês anterior");
+            }
+        });
     }
 
     atualiza_resumos(){
@@ -199,7 +222,11 @@ class EspelhoPonto {
         this.atualiza_campo(this.tabela[this.num_dias+1].children[2],time2str(extras-atrasos))
 
         // Banco de horas
-        var saldo_avencer=this.saldo_mes_anterior()
+        var saldo_avencer=this.saldo_mes_anterior
+        if (saldo_avencer==null) {
+            console.log("Ainda sem saldo do mês anterior")
+            return true
+        }
         var saldo_consumido=0
         var pendente=0
         var residuo=0
@@ -230,7 +257,8 @@ class EspelhoPonto {
         this.atualiza_campo(this.campo("Resíduo de Horas:"),time2str(pendente))
         if (pendente==0) msg_pendente="☺☮☺"
         this.atualiza_campo($(this.campo("Resíduo de Horas:")).next()[0],msg_pendente)
-        this.atualiza_campo($(this.campo("Saldo do Banco de Horas:")).next()[0],"Próximo mês: "+time2str(saldo_mes))
+        this.atualiza_campo(this.campo("Saldo do Banco de Horas:"),time2str(saldo_avencer))
+        this.atualiza_campo($(this.campo("Saldo do Banco de Horas:")).next()[0],"Saldo atual para o próximo mês: "+time2str(saldo_mes))
     }
 
     campo(label) {
@@ -261,13 +289,6 @@ if ($("td:contains('Mês fechado pelo sistema.')").length==0) {
         setInterval(on_minuto, 60000);
     }, (60 - (new Date()).getSeconds()) * 1000);
 
-//    console.log("saldo:",time2str(espelho.saldo_mes_anterior()));
-//    console.log("atrasos:",time2str(espelho.atrasos()));
-//    console.log("extras:",time2str(espelho.extras()));
-//    console.log("extras autorizados:",time2str(espelho.extras_autorizacao(true)));
-//    console.log("extras n autorizados:",time2str(espelho.extras_autorizacao(false)));
-//    console.log("jornada:",time2str(espelho.jornada_mensal()));
-//    console.log("final:",time2str(espelho.extras()-espelho.atrasos()));
 } else {
     // Mês fechado
 }
