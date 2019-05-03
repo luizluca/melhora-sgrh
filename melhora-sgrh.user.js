@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora Portal do Servidor
 // @namespace  https://github.com/luizluca/melhora-sgrh
-// @version    1.2
+// @version    1.3
 // @description Adiciona mais informações ao Portal do Servidor
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
@@ -9,6 +9,7 @@
 // @match      https://sistemas4.tre-sc.gov.br/sadAdmSRH/frequencianacional/espelhoPontoMensal.do*
 // @match      https://sistemas5.tre-sc.gov.br/portal-servidor/EspelhoPontoMesAction_recuperar.action
 // @match      https://sistemas5.tre-sc.gov.br/portal-servidor/_/EspelhoPontoMesAction_recuperar
+// @match      https://sistemas5.tre-sc.gov.br/portal-servidor/EspelhoPontoMesAction_recuperar
 // @match      https://sistemas5.tre-sc.gov.br/portal-servidor/EspelhoPontoMesAction_formEspelhoPontoMes_consultar
 // @copyright  2016+, Luiz Angelo Daros de Luca <luizluca@tre-sc.jus.br>, Luís Flávio Seelig <luisfs@tre-sc.jus.br>
 // @require    https://code.jquery.com/jquery-latest.js
@@ -68,10 +69,17 @@ Date.prototype.days_in_month = function() {
 };
 
 class EspelhoPonto {
-    constructor() {
-        this.tabela=$("#tblEspelhoPontoMesCorrente tr");
+    constructor(_tabela) {
+        if (_tabela === undefined) {
+            this.tabela=$("#tblEspelhoPontoMesCorrente tr");
+            this.async=true;
+        } else {
+            this.tabela=_tabela;
+            this.async=false;
+        }
         this.mes=str2date(this.tabela[1].children[0].innerHTML,"pt_BR");
         this.num_dias=this.mes.days_in_month()
+        this.saldo_mes=null;
         this.saldo_mes_anterior=null;
         this.atualiza_tudo();
     }
@@ -81,39 +89,42 @@ class EspelhoPonto {
         var hoje=new Date(agora.getFullYear(),agora.getMonth(),agora.getDate())
         var hoje_str=hoje.toLocaleString().slice(0, 10);
         var found=this.tabela.find("td:contains('"+hoje_str+"')")
-        if (found.lentgh==0) return;
-        var linha=found.parent();
-        var soma_dia=0
-        var expediente=0;
-        if ($(linha).hasClass("fundo2")) {
-            expediente=0;
+        if (found.length>0) {
+            var linha=found.parent();
+            var soma_dia=0
+            var expediente=0;
+            if ($(linha).hasClass("fundo2")) {
+                expediente=0;
+            } else {
+                // Expediente 8h a partir de Abril de ano eleitoral
+                if ((hoje.getFullYear()%2==0) && (hoje.getMonth() >= 3)) {
+                    expediente=7*60*60*1000;
+                } else {
+                    expediente=6*60*60*1000;
+                }
+            }
+
+            for (var j=0;j<3;j++) {
+                var entrada=linha.children()[j*2+1].innerHTML;
+                if (entrada=="") break;
+                entrada=str2time(entrada);
+                var saida=linha.children()[j*2+2];
+                if ($(saida).hasClass("dinamico") || (saida.innerHTML=="")) {
+                    saida=(agora.getTime()-hoje.getTime())
+                    this.atualiza_campo(linha.children()[j*2+2],time2str(saida))
+                } else {
+                    saida=str2time(saida.innerHTML);
+                }
+
+                soma_dia+=saida-entrada
+            }
+            this.atualiza_campo(linha.children()[8],time2str(soma_dia));
+            this.atualiza_campo(linha.children()[9],time2str(soma_dia-expediente));
         } else {
-            // Expediente 8h a partir de Abril de ano eleitoral
-            if ((hoje.getFullYear()%2==0) && (hoje.getMonth() >= 3)) {
-                expediente=7*60*60*1000;
-            } else {
-                expediente=6*60*60*1000;
-            }
+            // Mẽs anterior mas não fechado ainda.
         }
-
-        for (var j=0;j<3;j++) {
-            var entrada=linha.children()[j*2+1].innerHTML;
-            if (entrada=="") break;
-            entrada=str2time(entrada);
-            var saida=linha.children()[j*2+2];
-            if ($(saida).hasClass("dinamico") || (saida.innerHTML=="")) {
-                saida=(agora.getTime()-hoje.getTime())
-                this.atualiza_campo(linha.children()[j*2+2],time2str(saida))
-            } else {
-                saida=str2time(saida.innerHTML);
-            }
-
-            soma_dia+=saida-entrada
-        }
-        this.atualiza_campo(linha.children()[8],time2str(soma_dia));
-        this.atualiza_campo(linha.children()[9],time2str(soma_dia-expediente));
-        this.recarrega()
-        this.atualiza_resumos()
+        this.recarrega();
+        this.atualiza_resumos();
     }
 
     recarrega(){
@@ -186,6 +197,7 @@ class EspelhoPonto {
         //console.log("Buscando saldo de "+mes_ano_anterior+"...");
         $.ajax({
             url: "https://sistemas5.tre-sc.gov.br/portal-servidor/BancoHorasAction_recuperarExtrato",
+            async: this.async,
             success: function ( code, textStatus, request )
             {
                 var html = $(code);
@@ -203,6 +215,26 @@ class EspelhoPonto {
                     espelho.agora();
                     return false;
                 });
+                if (espelho.saldo_mes_anterior == null) {
+                    console.log ("Sem saldo do mês anterior "+mes_ano_anterior+". Posso tentar estimar pelo espelho do mês "+mes_ano_anterior);
+                    $.ajax({
+                        type: 'post',
+                        async: false,
+                        data: { "unidadeSelecionada.idUnidade":$("#unidadeSelecionada_idUnidade").val(), "servidorSelecionado.matricula":$("#servidorSelecionado_matricula").val(), "anoSelecionado:":mes_anterior.getFullYear(), "mesSelecionado":mes_anterior.getMonth()+1},
+                        success: function ( code, textStatus, request )
+                        {
+                            var html = $(code);
+                            var tabela_mes_anterior=html.find("#tblEspelhoPontoMesCorrente tr");
+                            var espelho_mes_anterior=new EspelhoPonto(tabela_mes_anterior);
+                            espelho.saldo_mes_anterior=espelho_mes_anterior.saldo_mes;
+                            espelho.agora();
+                        },
+                        error: function ( code )
+                        {
+                            alert("Falha ao consultar o espelho do mês anterior para tentar obter o saldo estimado");
+                        }
+                    });
+                }
             },
             error: function ( code )
             {
@@ -259,6 +291,7 @@ class EspelhoPonto {
         this.atualiza_campo($(this.campo("Resíduo de Horas:")).next()[0],msg_pendente)
         this.atualiza_campo(this.campo("Saldo do Banco de Horas:"),time2str(saldo_avencer))
         this.atualiza_campo($(this.campo("Saldo do Banco de Horas:")).next()[0],"Saldo atual para o próximo mês: "+time2str(saldo_mes))
+        this.saldo_mes=saldo_mes
     }
 
     campo(label) {
@@ -279,7 +312,7 @@ function on_minuto() {
 }
 
 if ($("td:contains('Mês fechado pelo sistema.')").length==0) {
-    // Mês atual
+    // Mês não fechado
     var espelho=new EspelhoPonto();
     espelho.agora();
 
