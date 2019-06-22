@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora Portal do Servidor
 // @namespace  https://github.com/luizluca/melhora-sgrh
-// @version    1.3
+// @version    1.4
 // @description Adiciona mais informações ao Portal do Servidor
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
@@ -325,3 +325,6 @@ if ($("td:contains('Mês fechado pelo sistema.')").length==0) {
 } else {
     // Mês fechado
 }
+
+// Evita conflitos se a página já usa jQuery
+this.$ = this.jQuery = jQuery.noConflict(true);
