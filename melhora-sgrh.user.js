@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora Portal do Servidor
 // @namespace  https://github.com/luizluca/melhora-sgrh
-// @version    1.4
+// @version    1.5
 // @description Adiciona mais informações ao Portal do Servidor
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
@@ -22,8 +22,28 @@ function pad (str, max) {
   return (""+str).length < max ? pad("0" + str, max) : str;
 }
 
-function time2str(aTime) {
-    return (aTime<0?"-":"") + pad(Math.floor(Math.abs(aTime/(60000*60))),2) + ":" + pad(Math.floor(Math.abs(aTime/60000%60)),2);
+function time2str(aTime,hourMinuteSecond=false) {
+    if (isNaN(aTime)) aTime=0;
+
+    var aSig=((aTime<0)?"-":"");
+    var aHour;
+    var aMin;
+    var aTimeStr="";
+    if (hourMinuteSecond) {
+        // Second resolution
+        aTime=Math.floor(aTime/(1000));
+        var aSec=aTime%60;
+        aTimeStr=":"+pad(Math.abs(aSec),2);
+        aTime=(aTime-aSec)/60;
+    } else {
+        // Minute resolution
+        aTime=Math.floor(aTime/(1000*60));
+    }
+    aMin=aTime%60;
+    aTimeStr=":"+pad(Math.abs(aMin),2)+aTimeStr;
+    aHour=(aTime-aMin)/60;
+
+    return aSig+pad(Math.abs(aHour),2)+aTimeStr;
 }
 
 function str2time(aTimeStr) {
@@ -194,7 +214,7 @@ class EspelhoPonto {
         var mes_anterior=new Date(this.mes.getFullYear(),this.mes.getMonth()-1,1);
         var mes_ano_anterior=(mes_anterior.getMonth()+1)+"/"+mes_anterior.getFullYear()
         var espelho=this;
-        //console.log("Buscando saldo de "+mes_ano_anterior+"...");
+        //console.log("Buscando saldo de "+mes_ano_anterior+"... async="+this.async);
         $.ajax({
             url: "https://sistemas5.tre-sc.gov.br/portal-servidor/BancoHorasAction_recuperarExtrato",
             async: this.async,
@@ -322,6 +342,8 @@ if ($("td:contains('Mês fechado pelo sistema.')").length==0) {
         setInterval(on_minuto, 60000);
     }, (60 - (new Date()).getSeconds()) * 1000);
 
+    // Arruma o alinhamento dos totais
+    $(".cellTotais").css("text-align","center");
 } else {
     // Mês fechado
 }
