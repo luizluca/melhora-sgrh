@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora Portal do Servidor
 // @namespace  https://github.com/luizluca/melhora-sgrh
-// @version    1.5
+// @version    1.6
 // @description Adiciona mais informações ao Portal do Servidor
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
@@ -128,6 +128,7 @@ class EspelhoPonto {
                 var entrada=linha.children()[j*2+1].innerHTML;
                 if (entrada=="") break;
                 entrada=str2time(entrada);
+                if (isNaN(entrada)) break;
                 var saida=linha.children()[j*2+2];
                 if ($(saida).hasClass("dinamico") || (saida.innerHTML=="")) {
                     saida=(agora.getTime()-hoje.getTime())
@@ -135,11 +136,12 @@ class EspelhoPonto {
                 } else {
                     saida=str2time(saida.innerHTML);
                 }
-
                 soma_dia+=saida-entrada
             }
-            this.atualiza_campo(linha.children()[8],time2str(soma_dia));
-            this.atualiza_campo(linha.children()[9],time2str(soma_dia-expediente));
+            if (j>0) {
+                this.atualiza_campo(linha.children()[8],time2str(soma_dia));
+                this.atualiza_campo(linha.children()[9],time2str(soma_dia-expediente));
+            }
         } else {
             // Mẽs anterior mas não fechado ainda.
         }
