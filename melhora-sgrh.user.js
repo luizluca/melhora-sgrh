@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora Portal do Servidor
 // @namespace  https://github.com/luizluca/melhora-sgrh
-// @version    1.6
+// @version    1.7
 // @description Adiciona mais informações ao Portal do Servidor
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
@@ -116,7 +116,8 @@ class EspelhoPonto {
             if ($(linha).hasClass("fundo2")) {
                 expediente=0;
             } else {
-                // Expediente 8h a partir de Abril de ano eleitoral
+                // http://sistemas.tre-sc.gov.br/e-docs/documento/edoc768202/portaria_pres_2015_26.pdf#search=%22%22
+                // Expediente 7h a partir de Abril de ano eleitoral
                 if ((hoje.getFullYear()%2==0) && (hoje.getMonth() >= 3)) {
                     expediente=7*60*60*1000;
                 } else {
