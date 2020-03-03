@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Melhora Portal do Servidor
 // @namespace  https://github.com/luizluca/melhora-sgrh
-// @version    1.7
+// @version    1.8
 // @description Adiciona mais informações ao Portal do Servidor
 // @grant       none
 // @updateURL https://raw.githubusercontent.com/luizluca/melhora-sgrh/master/melhora-sgrh.user.js
@@ -157,21 +157,14 @@ class EspelhoPonto {
         for (var i=1;i<=this.num_dias;i++) {
             var linha=this.tabela[i]
             var dia=linha.children[0].innerHTML;
-            //for (var j=0;j<3;j++) {
-            //    var entrada=linha.children[j*2+1].innerHTML;
-            //    var saida=linha.children[j*2+2].innerHTML;
-            //}
-            var total=0;
-            var excedente=0;
-            var autorizacaoHE=false;
-            if (linha.children.length==16) {
-                total=str2time(linha.children[8].innerHTML);
-                excedente=str2time(linha.children[9].innerHTML);
-                autorizacaoHE=linha.children[15].children.length>0;
-            }
-            this.jornada[i-1]=total;
-            this.excedentes[i-1]=excedente;
-            this.autorizacoesHE[i-1]=autorizacaoHE
+
+            var total=Array.from(linha.children).filter(campo => $(campo).hasClass("h09")).map(campo => campo.innerHTML)[0];
+            var excedente=Array.from(linha.children).filter(campo => $(campo).hasClass("h10")).map(campo => campo.innerHTML)[0];
+            var autorizacaoHE=Array.from(linha.children).filter(campo => $(campo).hasClass("h17")).map(campo => campo.children.length>0)[0];
+
+            this.jornada[i-1]=total ? str2time(total) : 0;
+            this.excedentes[i-1]=excedente ? str2time(excedente) : 0;
+            this.autorizacoesHE[i-1]=autorizacaoHE ? true : false
         }
     }
 
